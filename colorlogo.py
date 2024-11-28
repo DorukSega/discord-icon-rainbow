@@ -1,16 +1,18 @@
 import discord
-import asyncio
-import random
-import json
-import datetime
+from asyncio import sleep
+from random import seed, randint
+from json import load
+from datetime import datetime
+from math import sqrt
 from io import BytesIO
 from PIL import Image
 
 # CREATE secret.json with info
 with open("secret.json", "r") as config_file:
-    config = json.load(config_file)
+    config = load(config_file)
     TOKEN = config["TOKEN"]
     GUILD_ID = config["GUILD_ID"]
+
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -25,12 +27,24 @@ def create_color_image(color: tuple):
     return byte_arr
 
 
-def generate_random_color(seed=None):
-    if seed is None:
-        # Use the current time down to microseconds for default seeding
-        seed = int(datetime.datetime.now().timestamp() * 1_000_000)
-    random.seed(seed)
-    return tuple(random.randint(0, 255) for _ in range(3))
+def generate_random_color():
+    nseed = int(datetime.now().timestamp() * 1_000_000)
+    seed(nseed)
+    return tuple(randint(0, 255) for _ in range(3))
+
+
+def color_distance(color1, color2):
+    """Calculate the Euclidean distance between two colors in RGB space."""
+    return sqrt(sum((c1 - c2) ** 2 for c1, c2 in zip(color1, color2)))
+
+
+def generate_random_color_distant(last_color=None, min_distance=150):
+    nseed = int(datetime.now().timestamp() * 1_000_000)
+    seed(nseed)
+    while True:
+        new_color = tuple(randint(0, 255) for _ in range(3))
+        if last_color is None or color_distance(new_color, last_color) >= min_distance:
+            return new_color
 
 
 async def change_server_icon():
@@ -39,18 +53,22 @@ async def change_server_icon():
         print("Guild not found!")
         return
 
+    last_color = generate_random_color()
     while True:
-        random_color = generate_random_color()
-        image_data = create_color_image(random_color)
+        new_color = generate_random_color_distant(last_color=last_color)
+        last_color = new_color
+        image_data = create_color_image(new_color)
+        additional_wait = randint(0, 59)
         try:
             await guild.edit(icon=image_data.read())
-            current_time = datetime.datetime.now()
-            print(f"Changed icon to random color {random_color} {current_time.hour}:{current_time.minute}:{current_time.second}")
+            current_time = datetime.now()
+            print(f"Changed to {new_color} {current_time.hour}:{current_time.minute}:{current_time.second}")
+            print(f"Next in {60 + additional_wait} seconds")
         except discord.errors.HTTPException as e:
             print(f"Rate limited or another issue occurred: {e}")
-            await asyncio.sleep(60)  # Wait a minute if rate-limited
-        additional_wait = random.randint(0, 59)
-        await asyncio.sleep(60 + additional_wait)
+            await sleep(600)
+            continue
+        await sleep(60 + additional_wait)
 
 
 @client.event
