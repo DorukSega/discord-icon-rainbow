@@ -49,7 +49,8 @@ async def change_server_icon():
         except discord.errors.HTTPException as e:
             print(f"Rate limited or another issue occurred: {e}")
             await asyncio.sleep(60)  # Wait a minute if rate-limited
-        await asyncio.sleep(60)  # Change icon every 60 seconds
+        additional_wait = random.randint(0, 59)
+        await asyncio.sleep(60 + additional_wait)
 
 
 @client.event
