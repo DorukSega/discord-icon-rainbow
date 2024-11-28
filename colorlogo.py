@@ -44,7 +44,8 @@ async def change_server_icon():
         image_data = create_color_image(random_color)
         try:
             await guild.edit(icon=image_data.read())
-            print(f"Changed icon to random color {random_color}")
+            current_time = datetime.datetime.now()
+            print(f"Changed icon to random color {random_color} {current_time.hour}:{current_time.minute}:{current_time.second}")
         except discord.errors.HTTPException as e:
             print(f"Rate limited or another issue occurred: {e}")
             await asyncio.sleep(60)  # Wait a minute if rate-limited
